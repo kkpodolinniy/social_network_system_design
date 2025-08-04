@@ -1,0 +1,878 @@
+openapi: 3.0.4
+info:
+  title: Social network for travelers 1.0
+  description: |-
+    Basic API of the social network for travelers
+  termsOfService: https://swagger.io/terms/
+  contact:
+    email: kirill.podolinniy@gmail.com
+  version: 1.0.0
+paths:
+  /posts:
+    get:
+      tags:
+        - Posts
+      summary: Получение ленты постов по заданным параметрам.
+      description: |-
+        Получение ленты постов по заданным параметрам. Эндпоинт нужен для:
+        - просмотра ленты на основе подписок
+        - просмотр постов на основе мест 
+        - просмотр постов конкретного пользователя
+      parameters:
+        - name: feed_type
+          in: query
+          description: Тип ленты постов
+          required: false
+          schema:
+            type: string
+            enum:
+              - subscriptions
+              - location
+              - user
+            example: subscriptions
+        - name: limit
+          in: query
+          description: Лимит вывода
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: offset
+          in: query
+          description: Офсет
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: user_id
+          in: query
+          description: Id пользователя
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: location_id
+          in: query
+          description: Id места
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: sort_order
+          in: query
+          description: Сортировка по убыванию/возрастанию
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            example: asc
+        - name: sort_by
+          in: query
+          description: Сортировка по полю
+          required: false
+          schema:
+            type: string
+            enum:
+              - created_at
+              - location_id
+            example: created_at
+      responses:
+        200:
+          description: Список постов получен успешно
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: id поста
+                      example: 123
+                    description:
+                      type: string
+                      description: Описание поста
+                      example: "abcd"
+                    images:
+                      type: array
+                      items:
+                        type: string
+                        format: uri
+                      description: Массив URL изображений
+                      maxItems: 5
+                      example: ["https://example.com/img1.jpg", "https://example.com/img2.jpg"]
+                    comments:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          firstName:
+                            type: string
+                            example: "Ivan"
+                          lastName:
+                            type: string
+                            example: "Cherikov"
+                          avatarUrl:
+                            type: string
+                            format: uri
+                            example: "https://example.com/avatar.jpg"
+                    isLiked:
+                      type: boolean
+                      description: Лайкнул ли текущий пользователь пост
+                      example: true
+                    likes:
+                      type: integer
+                      description: Количество лайков
+                      example: 1235
+                    location:
+                      type: object
+                      properties:
+                        location_id:
+                          type: string
+                          example: "123asd"
+                        name:
+                          type: string
+                          example: "place_name"
+        404:
+          description: Not found
+        500:
+          description: Server error
+        400:
+          description: Request error
+    post:
+      tags:
+        - Posts
+      summary: Создание нового поста
+      description: Создание нового поста с возможностью загрузки до 5 изображений
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  description: Описание поста
+                  example: "Какое красивое место!"
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Изображения для поста (до 5 штук)
+                  maxItems: 5
+                location_id:
+                  type: string
+                  description: ID локации
+                  example: "123asd"
+              required:
+                - description
+      responses:
+        201:
+          description: Пост создан успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: id созданного поста
+                    example: 123
+                  description:
+                    type: string
+                    description: Описание поста
+                    example: "Какое красивое место!"
+                  images:
+                    type: array
+                    items:
+                      type: string
+                      format: uri
+                    description: Массив URL загруженных изображений
+                    maxItems: 5
+                    example: ["https://example.com/img1.jpg", "https://example.com/img2.jpg"]
+                  comments:
+                    type: array
+                    items:
+                      type: object
+                    description: Пустой массив комментариев для нового поста
+                    example: []
+                  isLiked:
+                    type: boolean
+                    description: Лайкнул ли текущий пользователь пост
+                    example: false
+                  likes:
+                    type: integer
+                    description: Количество лайков
+                    example: 0
+                  location:
+                    type: object
+                    properties:
+                      location_id:
+                        type: string
+                        example: "123asd"
+                      name:
+                        type: string
+                        example: "place_name"
+        404:
+          description: Not found
+        500:
+          description: Server error
+        400:
+          description: Request error
+
+  /posts/{id}:
+    get:
+      tags:
+        - Posts
+      summary: Получение подробной информации о посте
+      description: Получение подробной информации о посте
+      parameters:
+        - name: id
+          in: path
+          description: id поста
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: Пост получен успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: id поста
+                    example: 123
+                  description:
+                    type: string
+                    description: Описание поста
+                    example: "abcd"
+                  images:
+                    type: array
+                    items:
+                      type: string
+                      format: uri
+                    description: Массив URL изображений
+                    maxItems: 5
+                    example: ["https://example.com/img1.jpg", "https://example.com/img2.jpg"]
+                  comments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        firstName:
+                          type: string
+                          example: "Ivan"
+                        lastName:
+                          type: string
+                          example: "Cherikov"
+                        avatarUrl:
+                          type: string
+                          format: uri
+                          example: "https://example.com/avatar.jpg"
+                  isLiked:
+                    type: boolean
+                    description: Лайкнул ли текущий пользователь пост
+                    example: true
+                  likes:
+                    type: integer
+                    description: Количество лайков
+                    example: 1235
+                  location:
+                    type: object
+                    properties:
+                      location_id:
+                        type: string
+                        example: "123asd"
+                      name:
+                        type: string
+                        example: "place_name"
+        404:
+          description: Not found
+        500:
+          description: Server error
+        400:
+          description: Request error
+    put:
+      tags:
+        - Posts
+      summary: Отредактировать пост
+      description: Редактирование поста с возможностью изменения изображений
+      parameters:
+        - name: id
+          in: path
+          description: id поста
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  description: Новое описание поста
+                  example: "Обновленное описание поста"
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Новые изображения для поста (до 5 штук)
+                  maxItems: 5
+                location_id:
+                  type: string
+                  description: ID новой локации
+                  example: "456def"
+      responses:
+        200:
+          description: Пост обновлен успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: id поста
+                    example: 123
+                  description:
+                    type: string
+                    description: Обновленное описание поста
+                    example: "Обновленное описание поста"
+                  images:
+                    type: array
+                    items:
+                      type: string
+                      format: uri
+                    description: Массив URL обновленных изображений
+                    maxItems: 5
+                    example: ["https://example.com/new_img1.jpg", "https://example.com/new_img2.jpg"]
+                  comments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        firstName:
+                          type: string
+                          example: "Ivan"
+                        lastName:
+                          type: string
+                          example: "Cherikov"
+                        avatarUrl:
+                          type: string
+                          format: uri
+                          example: "https://example.com/avatar.jpg"
+                  isLiked:
+                    type: boolean
+                    description: Лайкнул ли текущий пользователь пост
+                    example: true
+                  likes:
+                    type: integer
+                    description: Количество лайков
+                    example: 1235
+                  location:
+                    type: object
+                    properties:
+                      location_id:
+                        type: string
+                        example: "456def"
+                      name:
+                        type: string
+                        example: "new_place_name"
+        404:
+          description: Not found
+        403:
+          description: Нет прав для редактирования
+        500:
+          description: Server error
+        400:
+          description: Request error
+    delete:
+      tags:
+        - Posts
+      summary: Удалить пост
+      description: Удалить пост
+      parameters:
+        - name: id
+          in: path
+          description: id поста
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        204:
+          description: Пост удален успешно
+        404:
+          description: Not found
+        403:
+          description: Нет прав для удаления
+        500:
+          description: Server error
+        400:
+          description: Request error
+
+  /places:
+    get:
+      tags:
+        - Places
+      summary: Получение геоточек по строке с неполным вхождением
+      description: Получение геоточек по строке с неполным вхождением
+      parameters:
+        - name: geo_name
+          in: query
+          description: Строка с неполным вхождением, для поиска мест по геоточкам
+          required: true
+          schema:
+            type: string
+            example: Музей Лувра
+      responses:
+        200:
+          description: Список найденных геоточек
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  places:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        location_id:
+                          type: string
+                          description: Уникальный идентификатор места
+                          example: "place_12345"
+                        name:
+                          type: string
+                          description: Основное название места
+                          example: "Музей Лувра"
+                        address:
+                          type: string
+                          description: Полный адрес
+                          example: "Rue de Rivoli, 75001 Paris, France"
+                        coordinates:
+                          type: object
+                          properties:
+                            latitude:
+                              type: number
+                              format: double
+                              example: 48.860611
+                            longitude:
+                              type: number
+                              format: double
+                              example: 2.337644
+                        place_type:
+                          type: string
+                          description: Тип места
+                          enum: [museum, restaurant, park, building, street, city, country]
+                          example: "museum"
+                        country:
+                          type: string
+                          description: Страна
+                          example: "France"
+                        city:
+                          type: string
+                          description: Город
+                          example: "Paris"
+                        description:
+                          type: string
+                          description: Краткое описание места
+                          example: "Крупнейший художественный музей мира"
+                        photo_url:
+                          type: string
+                          format: uri
+                          description: URL основного фото места
+                          example: "https://example.com/louvre.jpg"
+                  total_count:
+                    type: integer
+                    description: Общее количество найденных мест
+                    example: 5
+        404:
+          description: Not found
+        500:
+          description: Server error
+        400:
+          description: Request error
+
+  /posts/{id}/likes:
+    post:
+      tags:
+        - Like
+      summary: Переключить лайк поста
+      description: Поставить лайк если его нет, убрать если есть
+      parameters:
+        - name: id
+          in: path
+          description: Id поста
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: Операция выполнена успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  liked:
+                    type: boolean
+                    description: Текущее состояние лайка
+                    example: true
+                  likes_count:
+                    type: integer
+                    description: Общее количество лайков
+                    example: 42
+        404:
+          description: Not found
+        500:
+          description: Server error
+
+  /posts/{id}/comments:
+    post:
+      tags:
+        - Comments
+      summary: Сделать комментарий к посту
+      description: Сделать комментарий к посту
+      parameters:
+        - name: id
+          in: path
+          description: Id поста
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+                  description: Текст комментария
+                  example: "Ну что за красота"
+              required:
+                - comment
+      responses:
+        201:
+          description: Комментарий создан успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: id комментария
+                    example: 123
+                  user:
+                    type: object
+                    properties:
+                      firstName:
+                        type: string
+                        example: "Ivan"
+                      lastName:
+                        type: string
+                        example: "Cherikov"
+                      avatarUrl:
+                        type: string
+                        format: uri
+                        example: "https://example.com/avatar.jpg"
+                  comment:
+                    type: string
+                    description: Текст комментария
+                    example: "Ну что за красота"
+                  created_at:
+                    type: string
+                    format: date-time
+                    description: Время создания комментария
+                    example: "2024-08-04T12:34:56Z"
+        500:
+          description: Server error
+        400:
+          description: Request error
+    get:
+      tags:
+        - Comments
+      summary: Получить список комментариев по определенному посту
+      description: Получить список комментариев по определенному посту
+      parameters:
+        - name: id
+          in: path
+          description: Id поста
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: limit
+          in: query
+          description: Лимит вывода
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: offset
+          in: query
+          description: Офсет
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: sort_order
+          in: query
+          description: Сортировка по убыванию/возрастанию
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            example: asc
+        - name: sort_by
+          in: query
+          description: Сортировка по полю
+          required: false
+          schema:
+            type: string
+            enum:
+              - created_at
+            example: created_at
+      responses:
+        200:
+          description: Список комментариев получен успешно
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: id комментария
+                      example: 123
+                    user:
+                      type: object
+                      properties:
+                        firstName:
+                          type: string
+                          example: "Ivan"
+                        lastName:
+                          type: string
+                          example: "Cherikov"
+                        avatarUrl:
+                          type: string
+                          format: uri
+                          example: "https://example.com/avatar.jpg"
+                    comment:
+                      type: string
+                      description: Текст комментария
+                      example: "Trulaleo Trulala"
+                    created_at:
+                      type: string
+                      format: date-time
+                      description: Время создания комментария
+                      example: "2024-08-04T12:34:56Z"
+        500:
+          description: Server error
+        400:
+          description: Request error
+
+  /posts/{id}/comments/{comment_id}:
+    put:
+      tags:
+        - Comments
+      summary: Обновить комментарий
+      description: Обновить текст комментария
+      parameters:
+        - name: id
+          in: path
+          description: Id поста
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: comment_id
+          in: path
+          description: Id комментария
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+                  description: Новый текст комментария
+                  example: "Обновленный комментарий"
+              required:
+                - comment
+      responses:
+        200:
+          description: Комментарий обновлен успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: id комментария
+                    example: 123
+                  user:
+                    type: object
+                    properties:
+                      firstName:
+                        type: string
+                        example: "Ivan"
+                      lastName:
+                        type: string
+                        example: "Cherikov"
+                      avatarUrl:
+                        type: string
+                        format: uri
+                        example: "https://example.com/avatar.jpg"
+                  comment:
+                    type: string
+                    description: Обновленный текст комментария
+                    example: "Обновленный комментарий"
+                  created_at:
+                    type: string
+                    format: date-time
+                    description: Время создания комментария
+                    example: "2024-08-04T12:34:56Z"
+                  updated_at:
+                    type: string
+                    format: date-time
+                    description: Время последнего обновления
+                    example: "2024-08-04T13:45:30Z"
+        404:
+          description: Комментарий не найден
+        403:
+          description: Нет прав для редактирования
+        500:
+          description: Server error
+        400:
+          description: Request error
+    delete:
+      tags:
+        - Comments
+      summary: Удалить комментарий
+      description: Удалить комментарий
+      parameters:
+        - name: id
+          in: path
+          description: Id поста
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: comment_id
+          in: path
+          description: Id комментария
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        204:
+          description: Комментарий удален успешно
+        404:
+          description: Комментарий не найден
+        403:
+          description: Нет прав для удаления
+        500:
+          description: Server error
+        400:
+          description: Request error
+
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Получить список путещественников, на которых подписан пользователь
+      description: Получить список путещественников, на которых подписан пользователь
+      responses:
+        200:
+          description: Список подписок получен успешно
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: id пользователя
+                      example: 123
+                    firstName:
+                      type: string
+                      example: "Ivan"
+                    lastName:
+                      type: string
+                      example: "Cherikov"
+                    avatarUrl:
+                      type: string
+                      format: uri
+                      example: "https://example.com/avatar.jpg"
+        500:
+          description: Server error
+        400:
+          description: Request error
+
+  /users/{id}/subscribe:
+    post:
+      tags:
+        - Users
+      summary: Подписаться/отписаться от пользователя
+      description: Подписаться/отписаться от пользователя
+      parameters:
+        - name: id
+          in: path
+          description: Id пользователя
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 123
+      responses:
+        200:
+          description: Операция выполнена успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subscribed:
+                    type: boolean
+                    description: Текущее состояние подписки
+                    example: true
+        404:
+          description: Not found
+        500:
+          description: Server error
+        400:
+          description: Request error
